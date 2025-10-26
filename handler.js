@@ -1,15 +1,17 @@
- 
 import { smsg } from "./lib/simple.js"
 import { format } from "util"
-import { fileURLToPath } from "url"
-import path, { join } from "path"
-import fs, { unwatchFile, watchFile } from "fs"
+import { fileURLToPath }
+from "url"
+import path, { join }
+from "path"
+import fs, { unwatchFile, watchFile }
+from "fs"
 import chalk from "chalk"
 import fetch from "node-fetch"
 import ws from "ws"
 
 const isNumber = x => typeof x === "number" && !isNaN(x)
-const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(function () {
+const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(function() {
     clearTimeout(this)
     resolve()
 }, ms))
@@ -52,7 +54,11 @@ export async function handler(chatUpdate) {
                 if (!("afk" in user) || !isNumber(user.afk)) user.afk = -1
                 if (!("afkReason" in user)) user.afkReason = ""
                 if (!("warn" in user) || !isNumber(user.warn)) user.warn = 0
-                if (!("isMuted" in user)) user.isMuted = false; // <-- ¡Añadido! Mute de usuario
+
+                // ===> MUTE: Nuevas propiedades para usuarios <===
+                if (!("isMuted" in user)) user.isMuted = false; // Mute global (opcional, no usado en esta lógica de chat)
+                if (!("mutedChats" in user)) user.mutedChats = {}; // Objeto para trackear mutes por chat
+
             } else global.db.data.users[m.sender] = {
                 name: m.name,
                 exp: 0,
@@ -73,15 +79,19 @@ export async function handler(chatUpdate) {
                 afk: -1,
                 afkReason: "",
                 warn: 0,
-                isMuted: false // <-- ¡Añadido! Mute de usuario
+
+                // ===> MUTE: Nuevas propiedades para usuarios <===
+                isMuted: false,
+                mutedChats: {}
             }
+
             const chat = global.db.data.chats[m.chat]
             if (typeof chat !== "object") {
                 global.db.data.chats[m.chat] = {}
             }
             if (chat) {
                 if (!("isBanned" in chat)) chat.isBanned = false
-                if (!("isMute" in chat)) chat.isMute = false; // <-- Mute de grupo
+                if (!("isMute" in chat)) chat.isMute = false;
                 if (!("welcome" in chat)) chat.welcome = false
                 if (!("sWelcome" in chat)) chat.sWelcome = ""
                 if (!("sBye" in chat)) chat.sBye = ""
@@ -92,9 +102,13 @@ export async function handler(chatUpdate) {
                 if (!("nsfw" in chat)) chat.nsfw = false
                 if (!("economy" in chat)) chat.economy = true;
                 if (!("gacha" in chat)) chat.gacha = true
+
+                // ===> MUTE: Nuevas propiedades para chats <===
+                if (!("mutedUsers" in chat)) chat.mutedUsers = {}; // Objeto para trackear usuarios muteados en este chat
+
             } else global.db.data.chats[m.chat] = {
                 isBanned: false,
-                isMute: false, // <-- Mute de grupo
+                isMute: false,
                 welcome: false,
                 sWelcome: "",
                 sBye: "",
@@ -104,8 +118,12 @@ export async function handler(chatUpdate) {
                 antiLink: true,
                 nsfw: false,
                 economy: true,
-                gacha: true
+                gacha: true,
+
+                // ===> MUTE: Nuevas propiedades para chats <===
+                mutedUsers: {}
             }
+
             const settings = global.db.data.settings[this.user.jid]
             if (typeof settings !== "object") {
                 global.db.data.settings[this.user.jid] = {}
@@ -134,7 +152,7 @@ export async function handler(chatUpdate) {
             if (typeof nuevo === "string" && nuevo.trim() && nuevo !== actual) {
                 user.name = nuevo
             }
-        } catch { }
+        } catch {}
         const chat = global.db.data.chats[m.chat]
         const settings = global.db.data.settings[this.user.jid]
         const isROwner = [...global.owner.map((number) => number)].map(v => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net").includes(m.sender)
@@ -144,28 +162,17 @@ export async function handler(chatUpdate) {
         if (settings.self && !isOwners) return
         if (settings.gponly && !isOwners && !m.chat.endsWith('g.us') && !/code|p|ping|qr|estado|status|infobot|botinfo|report|reportar|invite|join|logout|suggest|help|menu/gim.test(m.text)) return
         if (opts["queque"] && m.text && !(isPrems)) {
-            const queque = this.msgqueque, time = 1000 * 5
+            const queque = this.msgqueque,
+                time = 1000 * 5
             const previousID = queque[queque.length - 1]
             queque.push(m.id || m.key.id)
-            setInterval(async function () {
+            setInterval(async function() {
                 if (queque.indexOf(previousID) === -1) clearInterval(this)
                 await delay(time)
             }, time)
         }
-
         if (m.isBaileys) return
         m.exp += Math.ceil(Math.random() * 10)
-
-        // --- INICIO DE LA LÓGICA DE MUTE DE USUARIO (AQUÍ SE APLICÓ EL CAMBIO) ---
-        const targetUser = global.db.data.users[m.sender];
-        // Excluir a los dueños del bot y los comandos de desmutear de esta restricción
-        if (targetUser && targetUser.isMuted && !isROwner && !isOwner && !['unmuteuser', 'sunmute'].includes(global.comando)) { // Asegúrate que 'global.comando' sea el comando actual.
-            // Opcional: Reaccionar al mensaje del usuario muteado para indicar que fue ignorado
-            // await m.react('🔇');
-            return // ¡No procesar más el mensaje de este usuario!
-        }
-        // --- FIN DE LA LÓGICA DE MUTE DE USUARIO ---
-
         let usedPrefix
         const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
         const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
@@ -174,6 +181,40 @@ export async function handler(chatUpdate) {
         const isRAdmin = userGroup?.admin == "superadmin" || false
         const isAdmin = isRAdmin || userGroup?.admin == "admin" || false
         const isBotAdmin = botGroup?.admin || false
+
+        // ===> MUTE: Lógica para usuarios muteados <===
+        if (m.isGroup && chat?.mutedUsers && chat.mutedUsers[m.sender]) {
+            // Si el usuario está muteado en este chat
+            const mutedUserData = chat.mutedUsers[m.sender];
+            const userMutedChatsData = user.mutedChats[m.chat];
+
+            // Eliminar el mensaje
+            await conn.sendMessage(m.chat, { delete: m.key });
+
+            // Incrementar el contador de mensajes eliminados
+            mutedUserData.count++;
+            userMutedChatsData.count++;
+
+            // Guardar cambios en la base de datos
+            global.db.data.chats[m.chat].mutedUsers[m.sender] = mutedUserData;
+            global.db.data.users[m.sender].mutedChats[m.chat] = userMutedChatsData;
+
+            // Lógica de advertencia
+            if (mutedUserData.count >= 8 && !mutedUserData.warned) {
+                await conn.reply(m.chat, `⚠️ ¡Advertencia! @${m.sender.split('@')[0]}, tus mensajes están siendo eliminados porque estás muteado en este grupo. Si continúas, podrías ser expulsado. Has enviado ${mutedUserData.count} mensajes que fueron eliminados.`, m, { mentions: [m.sender] });
+                mutedUserData.warned = true;
+                userMutedChatsData.warned = true;
+            } else if (mutedUserData.warned && mutedUserData.count >= 12) { // 8 + 4 = 12
+                await conn.groupParticipantsUpdate(m.chat, [m.sender], 'remove');
+                await conn.reply(m.chat, `Adiós @${m.sender.split('@')[0]}. Has sido expulsado del grupo por ignorar la advertencia de mute y seguir enviando mensajes.`, m, { mentions: [m.sender] });
+                delete chat.mutedUsers[m.sender];
+                if (user.mutedChats && user.mutedChats[m.chat]) {
+                    delete user.mutedChats[m.chat];
+                }
+            }
+            return; // Importante: detiene el procesamiento del mensaje para usuarios muteados
+        }
+        // ===> FIN MUTE: Lógica para usuarios muteados <===
 
         const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "./plugins")
         for (const name in global.plugins) {
@@ -199,39 +240,47 @@ export async function handler(chatUpdate) {
                 if (plugin.tags && plugin.tags.includes("admin")) {
                     continue
                 }
-            const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
+            const strRegex = (str) => str.replace(/[|\{}()\[\]^$+*?.]/g, "\\$&")
             const pluginPrefix = plugin.customPrefix || conn.prefix || global.prefix
             const match = (pluginPrefix instanceof RegExp ?
-                [[pluginPrefix.exec(m.text), pluginPrefix]] :
+                [
+                    [pluginPrefix.exec(m.text), pluginPrefix]
+                ] :
                 Array.isArray(pluginPrefix) ?
-                    pluginPrefix.map(prefix => {
-                        const regex = prefix instanceof RegExp ?
-                            prefix : new RegExp(strRegex(prefix))
-                        return [regex.exec(m.text), regex]
-                    }) : typeof pluginPrefix === "string" ?
-                        [[new RegExp(strRegex(pluginPrefix)).exec(m.text), new RegExp(strRegex(pluginPrefix))]] :
-                        [[[], new RegExp]]).find(prefix => prefix[1])
+                pluginPrefix.map(prefix => {
+                    const regex = prefix instanceof RegExp ?
+                        prefix : new RegExp(strRegex(prefix))
+                    return [regex.exec(m.text), regex]
+                }) : typeof pluginPrefix === "string" ?
+                [
+                    [new RegExp(strRegex(pluginPrefix)).exec(m.text), new RegExp(strRegex(pluginPrefix))]
+                ] :
+                [
+                    [
+                        [], new RegExp
+                    ]
+                ]).find(prefix => prefix[1])
             if (typeof plugin.before === "function") {
                 if (await plugin.before.call(this, m, {
-                    match,
-                    conn: this,
-                    participants,
-                    groupMetadata,
-                    userGroup,
-                    botGroup,
-                    isROwner,
-                    isOwner,
-                    isRAdmin,
-                    isAdmin,
-                    isBotAdmin,
-                    isPrems,
-                    chatUpdate,
-                    __dirname: ___dirname,
-                    __filename,
-                    user,
-                    chat,
-                    settings
-                })) {
+                        match,
+                        conn: this,
+                        participants,
+                        groupMetadata,
+                        userGroup,
+                        botGroup,
+                        isROwner,
+                        isOwner,
+                        isRAdmin,
+                        isAdmin,
+                        isBotAdmin,
+                        isPrems,
+                        chatUpdate,
+                        __dirname: ___dirname,
+                        __filename,
+                        user,
+                        chat,
+                        settings
+                    })) {
                     continue
                 }
             }
@@ -249,14 +298,12 @@ export async function handler(chatUpdate) {
                 const isAccept = plugin.command instanceof RegExp ?
                     plugin.command.test(command) :
                     Array.isArray(plugin.command) ?
-                        plugin.command.some(cmd => cmd instanceof RegExp ?
-                            cmd.test(command) : cmd === command) :
-                        typeof plugin.command === "string" ?
-                            plugin.command === command : false
+                    plugin.command.some(cmd => cmd instanceof RegExp ?
+                        cmd.test(command) : cmd === command) :
+                    typeof plugin.command === "string" ?
+                    plugin.command === command : false
                 global.comando = command
-
                 if ((m.id.startsWith("NJX-") || (m.id.startsWith("BAE5") && m.id.length === 16) || (m.id.startsWith("B24E") && m.id.length === 20))) return
-
                 // Primary by: Alex 🐼
                 if (global.db.data.chats[m.chat].primaryBot && global.db.data.chats[m.chat].primaryBot !== this.user.jid) {
                     const primaryBotConn = global.conns.find(conn => conn.user.jid === global.db.data.chats[m.chat].primaryBot && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED)
@@ -269,32 +316,23 @@ export async function handler(chatUpdate) {
                     }
                 } else {
                 }
-
                 if (!isAccept) continue
                 m.plugin = name
-                if (isAccept) { global.db.data.users[m.sender].commands = (global.db.data.users[m.sender].commands || 0) + 1 }
+                if (isAccept) {
+                    global.db.data.users[m.sender].commands = (global.db.data.users[m.sender].commands || 0) + 1
+                }
                 if (chat) {
                     const botId = this.user.jid
                     const primaryBotId = chat.primaryBot
                     if (name !== "group-banchat.js" && chat?.isBanned && !isROwner) {
                         if (!primaryBotId || primaryBotId === botId) {
-                            const aviso = `ꕥ El bot *${botname}* está desactivado en este grupo\n\n> ✦ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`.trim()
+                            const aviso = `ꕥ El bot *${botname}* está desactivado en este grupo\n\n> ✦ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*.trim()`
                             await m.reply(aviso)
                             return
                         }
                     }
-
-                    // --- INICIO DE LA LÓGICA DE MUTE DE GRUPO ---
-                    // Excluimos los comandos 'mute' y 'unmute' (de grupo) de la restricción, además del isOwner
-                    if (chat?.isMute && !isOwner && !['mute', 'unmute'].includes(command)) {
-                        const avisoMute = `『🔇』Este grupo está silenciado. Los comandos están deshabilitados.\n\n> ✦ Un *administrador* puede activarlos con el comando:\n> » *${usedPrefix}unmute*`.trim()
-                        await m.reply(avisoMute)
-                        return
-                    }
-                    // --- FIN DE LA LÓGICA DE MUTE DE GRUPO ---
-
                     if (m.text && user.banned && !isROwner) {
-                        const mensaje = `ꕥ Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`.trim()
+                        const mensaje = `ꕥ Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador..trim()`
                         if (!primaryBotId || primaryBotId === botId) {
                             m.reply(mensaje)
                             return
@@ -400,7 +438,6 @@ export async function handler(chatUpdate) {
         }
     }
 }
-
 global.dfail = (type, m, conn) => {
     const msg = {
         rowner: `『✦』El comando *${comando}* solo puede ser usado por los creadores del bot.`,
@@ -415,6 +452,7 @@ global.dfail = (type, m, conn) => {
     }[type]
     if (msg) return conn.reply(m.chat, msg, m, rcanal).then(_ => m.react('✖️'))
 }
+
 let file = global.__filename(import.meta.url, true)
 watchFile(file, async () => {
     unwatchFile(file)
