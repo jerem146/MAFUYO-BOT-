@@ -1,3 +1,4 @@
+ 
 import { smsg } from "./lib/simple.js"
 import { format } from "util"
 import { fileURLToPath } from "url"
@@ -51,6 +52,7 @@ export async function handler(chatUpdate) {
                 if (!("afk" in user) || !isNumber(user.afk)) user.afk = -1
                 if (!("afkReason" in user)) user.afkReason = ""
                 if (!("warn" in user) || !isNumber(user.warn)) user.warn = 0
+                if (!("isMuted" in user)) user.isMuted = false; // <-- ¡Añadido! Mute de usuario
             } else global.db.data.users[m.sender] = {
                 name: m.name,
                 exp: 0,
@@ -70,7 +72,8 @@ export async function handler(chatUpdate) {
                 commands: 0,
                 afk: -1,
                 afkReason: "",
-                warn: 0
+                warn: 0,
+                isMuted: false // <-- ¡Añadido! Mute de usuario
             }
             const chat = global.db.data.chats[m.chat]
             if (typeof chat !== "object") {
@@ -78,7 +81,7 @@ export async function handler(chatUpdate) {
             }
             if (chat) {
                 if (!("isBanned" in chat)) chat.isBanned = false
-                if (!("isMute" in chat)) chat.isMute = false; // <-- Aseguramos que 'isMute' exista
+                if (!("isMute" in chat)) chat.isMute = false; // <-- Mute de grupo
                 if (!("welcome" in chat)) chat.welcome = false
                 if (!("sWelcome" in chat)) chat.sWelcome = ""
                 if (!("sBye" in chat)) chat.sBye = ""
@@ -91,7 +94,7 @@ export async function handler(chatUpdate) {
                 if (!("gacha" in chat)) chat.gacha = true
             } else global.db.data.chats[m.chat] = {
                 isBanned: false,
-                isMute: false, // <-- Aseguramos que 'isMute' exista por defecto
+                isMute: false, // <-- Mute de grupo
                 welcome: false,
                 sWelcome: "",
                 sBye: "",
@@ -152,6 +155,17 @@ export async function handler(chatUpdate) {
 
         if (m.isBaileys) return
         m.exp += Math.ceil(Math.random() * 10)
+
+        // --- INICIO DE LA LÓGICA DE MUTE DE USUARIO (AQUÍ SE APLICÓ EL CAMBIO) ---
+        const targetUser = global.db.data.users[m.sender];
+        // Excluir a los dueños del bot y los comandos de desmutear de esta restricción
+        if (targetUser && targetUser.isMuted && !isROwner && !isOwner && !['unmuteuser', 'sunmute'].includes(global.comando)) { // Asegúrate que 'global.comando' sea el comando actual.
+            // Opcional: Reaccionar al mensaje del usuario muteado para indicar que fue ignorado
+            // await m.react('🔇');
+            return // ¡No procesar más el mensaje de este usuario!
+        }
+        // --- FIN DE LA LÓGICA DE MUTE DE USUARIO ---
+
         let usedPrefix
         const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
         const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
@@ -270,14 +284,14 @@ export async function handler(chatUpdate) {
                         }
                     }
 
-                    // --- INICIO DE LA LÓGICA DE MUTE (AQUÍ SE APLICÓ EL CAMBIO) ---
-                    // Excluimos los comandos 'mute' y 'unmute' de la restricción, además del isROwner
-                    if (chat?.isMute && !isOwner && !['mute', 'unmute'].includes(command)) { // Usamos 'isOwner' para que los dueños del bot siempre puedan desmutear
+                    // --- INICIO DE LA LÓGICA DE MUTE DE GRUPO ---
+                    // Excluimos los comandos 'mute' y 'unmute' (de grupo) de la restricción, además del isOwner
+                    if (chat?.isMute && !isOwner && !['mute', 'unmute'].includes(command)) {
                         const avisoMute = `『🔇』Este grupo está silenciado. Los comandos están deshabilitados.\n\n> ✦ Un *administrador* puede activarlos con el comando:\n> » *${usedPrefix}unmute*`.trim()
                         await m.reply(avisoMute)
                         return
                     }
-                    // --- FIN DE LA LÓGICA DE MUTE ---
+                    // --- FIN DE LA LÓGICA DE MUTE DE GRUPO ---
 
                     if (m.text && user.banned && !isROwner) {
                         const mensaje = `ꕥ Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`.trim()
