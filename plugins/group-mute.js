@@ -1,5 +1,4 @@
-// import { isGroup } from "../lib/support.js" // ¡Eliminada esta línea!
-
+// Este archivo NO requiere 'import { isGroup } from "../lib/support.js"'
 let handler = async (m, { conn, isAdmin, isBotAdmin, args, usedPrefix, command, chat }) => {
     if (!m.isGroup) return m.reply('『✦』Este comando solo puede ser usado en grupos.')
     if (!isAdmin) return m.reply('『✦』Solo los administradores del grupo pueden usar este comando.')
