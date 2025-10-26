@@ -1,4 +1,5 @@
-import { smsg } from "./lib/simple.js"
+
+       import { smsg } from "./lib/simple.js"
 import { format } from "util"
 import { fileURLToPath }
 from "url"
@@ -186,7 +187,7 @@ export async function handler(chatUpdate) {
         if (m.isGroup && chat?.mutedUsers && chat.mutedUsers[m.sender]) {
             // Si el usuario está muteado en este chat
             const mutedUserData = chat.mutedUsers[m.sender];
-            const userMutedChatsData = user.mutedChats[m.chat];
+            const userMutedChatsData = user.mutedChats[m.chat]; // Para sincronizar con el usuario
 
             // Eliminar el mensaje
             await conn.sendMessage(m.chat, { delete: m.key });
@@ -207,6 +208,8 @@ export async function handler(chatUpdate) {
             } else if (mutedUserData.warned && mutedUserData.count >= 12) { // 8 + 4 = 12
                 await conn.groupParticipantsUpdate(m.chat, [m.sender], 'remove');
                 await conn.reply(m.chat, `Adiós @${m.sender.split('@')[0]}. Has sido expulsado del grupo por ignorar la advertencia de mute y seguir enviando mensajes.`, m, { mentions: [m.sender] });
+                
+                // Limpiar datos de mute del usuario/chat
                 delete chat.mutedUsers[m.sender];
                 if (user.mutedChats && user.mutedChats[m.chat]) {
                     delete user.mutedChats[m.chat];
@@ -458,4 +461,4 @@ watchFile(file, async () => {
     unwatchFile(file)
     console.log(chalk.magenta("Se actualizo 'handler.js'"))
     if (global.reloadHandler) console.log(await global.reloadHandler())
-})
+})         
