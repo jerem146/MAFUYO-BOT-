@@ -27,10 +27,10 @@ global.yukiJadibts = true
 //*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
 global.botname = "MAFUYO-BOT"
-global.textbot = "MAFUYO made un JEREMY "
-global.dev = "© ⍴᥆ᥕᥱrᥱძ ᑲᥡ ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜"
-global.author = "© mᥲძᥱ ᥕі𝗍һ ᑲᥡ ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜"
-global.etiqueta = "ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜"
+global.textbot = "MAFUYO made in JEREMY "
+global.dev = "JEREMY"
+global.author = "DAREK"
+global.etiqueta = "JEREMY-FASHIR"
 global.currency = "¥enes"
 global.banner = "https://github.com/jerem146/Imagen-/blob/main/IMG-20251026-WA2962.jpg"
 global.icono = "https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/1742678797993.jpeg"
