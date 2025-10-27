@@ -2,6 +2,7 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
     const message = args.join(' ');
     const botname = 'TuBot'; // Reemplaza con el nombre de tu bot
     const vs = '1.0'; // Reemplaza con la versión si es necesario
+    const sender = m.sender.split('@')[0]; // Obtiene el nombre del usuario que envió el comando
 
     let mentionsList = '';
     for (const mem of participants) {
@@ -10,25 +11,35 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
     
     // Asegura que el mensaje de INFO tenga un ancho consistente para la caja
     const infoLine = `│  [INFO]: ${message || 'Sin información adicional'}`;
-    const maxLineLength = Math.max(infoLine.length, (botname + ' v' + vs).length + 8); // Ajusta el ancho base
+    const senderLine = `│  [EJECUTADO POR]: @${sender}`;
+    const botTitle = `|       ${botname} - Sistema de Alerta       |`; // Línea del bot en la parte superior
     
+    // Calcular el ancho máximo para las líneas
+    const maxContentLength = Math.max(
+        infoLine.length - 7, // Restamos los caracteres fijos de '│  [INFO]: '
+        senderLine.length - 15, // Restamos los caracteres fijos de '│  [EJECUTADO POR]: @'
+        (botTitle.length - 2) // Ajuste para el texto dentro del título del bot
+    );
+    const boxWidth = maxContentLength + 10; // Un poco de margen para los bordes
+
     // Función para crear líneas horizontales con el ancho adecuado
-    const createHorizontalLine = (char = '-') => `+${char.repeat(maxLineLength - 2)}+`;
+    const createHorizontalLine = (char = '-') => `+${char.repeat(boxWidth - 2)}+`;
 
     const finalMessage = `
 ${createHorizontalLine()}
-|  ◎ ALERTA GENERAL DEL GRUPO ◎
+${botTitle}
 ${createHorizontalLine('=')}
 ${infoLine}
+${senderLine}
 ${createHorizontalLine('-')}
 |  Usuarios Notificados (${participants.length}):
 ${mentionsList.trim()}
 ${createHorizontalLine('=')}
-|  Ejecutado por ${botname} | Versión ${vs}
+|  Versión ${vs}
 ${createHorizontalLine()}
     `;
 
-    conn.sendMessage(m.chat, { text: finalMessage, mentions: participants.map((a) => a.id) });
+    conn.sendMessage(m.chat, { text: finalMessage, mentions: [...participants.map((a) => a.id), m.sender] });
 };
 
 handler.help = ['todos'];
