@@ -11,7 +11,34 @@ const handler = async (m, { conn, participants, isAdmin, isBotAdmin, args }) => 
     let chat = global.db.data.chats[m.chat];
     let userDb = global.db.data.users[userJid];
 
-    if (!userDb) throw 'El usuario no se encuentra en la base de datos del bot (no ha interactuado antes).';
+    // ===> SOLUCIÓN: Crear entrada de usuario si no existe <===
+    if (typeof userDb !== "object" || userDb === null) {
+        global.db.data.users[userJid] = {
+            name: await conn.getName(userJid), // Intenta obtener el nombre del usuario
+            exp: 0,
+            coin: 0,
+            bank: 0,
+            level: 0,
+            health: 100,
+            genre: "",
+            birth: "",
+            marry: "",
+            description: "",
+            packstickers: null,
+            premium: false,
+            premiumTime: 0,
+            banned: false,
+            bannedReason: "",
+            commands: 0,
+            afk: -1,
+            afkReason: "",
+            warn: 0,
+            isMuted: false,
+            mutedChats: {}
+        };
+        userDb = global.db.data.users[userJid]; // Reasignar para usar el objeto recién creado
+    }
+    // ===> FIN SOLUCIÓN <===
 
     // Evitar mutear al propio bot o a un administrador (o creador)
     const isTargetAdmin = participants.find(p => p.id === userJid)?.admin;
