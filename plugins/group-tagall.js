@@ -26,9 +26,9 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
   })
 }
 
-handler.help = ['todos']
+handler.help = ['tagall', 'invocar', 'todos', 'revivan']
 handler.tags = ['group']
-handler.command = ['todos', 'invocar', 'tagall']
+handler.command = /^(tagall|invocar|todos|revivan)$/i
 handler.admin = true
 handler.group = true
 
