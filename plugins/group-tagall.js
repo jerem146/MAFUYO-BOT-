@@ -7,11 +7,11 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
     ? `✦ ᯽ *Mensaje:* ${pesan}`
     : '⚘ ᥫ᭡ *Sin mensaje adicional*'
 
-  let teks = `╭━━━ ⪩  𝑴𝑬𝑵𝑪𝑰𝑶𝑵 𝑮𝑬𝑵𝑬𝑹𝑨𝑳  ⪨ ━━━╮
+  let teks = `╭━ ⪩ 𝑴𝑬𝑵𝑪𝑰𝑶𝑵 𝑮𝑬𝑵𝑬𝑹𝑨𝑳 ⪨ ━╮
 ┃ ⌬ *Miembros:* ${participants.length}
 ┃ ⌬ ${oi}
 ┃ ⌬ *Invocado por:* @${m.sender.split('@')[0]}
-╰━━━━━━━━━━━━━━━━━━━━━━╯
+╰━━━━━━━━━━━━━━━━━━━━━╯
 `
 
   for (const mem of participants) {
