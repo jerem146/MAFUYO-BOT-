@@ -26,16 +26,7 @@ const rcanal = {
       serverMessageId: '',
       newsletterName: channelRD.name
     },
-    // 🔧 Se elimina toda vista previa o miniatura
-    externalAdReply: {
-      showAdAttribution: false,
-      mediaType: 0,
-      previewType: 'NONE',
-      title: '',        // sin título ni encabezado
-      body: '',         // sin descripción
-      thumbnail: null,  // sin imagen miniatura
-      sourceUrl: ''     // sin enlace
-    },
+    // 🚫 Eliminamos externalAdReply por completo para quitar cualquier imagen o tarjeta
     mentionedJid: null
   }
 }
