@@ -18,27 +18,26 @@ const usuario = await resolveLidToRealJid(m?.sender, conn, m?.chat)
 const groupAdmins = participants.filter(p => p.admin)
 
 // 🔹 Bloque corregido sin miniatura ni imagen superior
-const rcanal = { 
-contextInfo: { 
-isForwarded: true, 
-forwardedNewsletterMessageInfo: { 
-newsletterJid: channelRD.id, 
-serverMessageId: '', 
-newsletterName: channelRD.name 
-}, 
-externalAdReply: { 
-title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱",
-body: textbot,
-mediaUrl: null,
-description: null,
-previewType: "NONE", // 🔸 ya no muestra imagen
-// thumbnail: await (await fetch(icono)).buffer(), // ❌ quitado para eliminar miniatura
-sourceUrl: redes,
-mediaType: 1,
-renderLargerThumbnail: false 
-}, 
-mentionedJid: null 
-}
+const rcanal = {
+  contextInfo: {
+    isForwarded: true,
+    forwardedNewsletterMessageInfo: {
+      newsletterJid: channelRD.id,
+      serverMessageId: '',
+      newsletterName: channelRD.name
+    },
+    // 🔧 Se elimina toda vista previa o miniatura
+    externalAdReply: {
+      showAdAttribution: false,
+      mediaType: 0,
+      previewType: 'NONE',
+      title: '',        // sin título ni encabezado
+      body: '',         // sin descripción
+      thumbnail: null,  // sin imagen miniatura
+      sourceUrl: ''     // sin enlace
+    },
+    mentionedJid: null
+  }
 }
 
 const pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://files.catbox.moe/xr2m6u.jpg'
